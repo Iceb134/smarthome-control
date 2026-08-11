@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Home Control Center</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 { color: #1c1e21; margin-bottom: 25px; }
+    .container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      width: 100%;
+      max-width: 900px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      text-align: center;
+      transition: transform 0.2s;
+    }
+    .card:hover { transform: translateY(-3px); }
+    .card h3 { margin-top: 0; color: #333; }
+    .status {
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin: 15px 0;
+      padding: 8px;
+      border-radius: 6px;
+      background: #f8f9fa;
+    }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      color: white;
+      background-color: #007bff;
+      transition: 0.2s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn.active { background-color: #28a745; }
+    .btn.inactive { background-color: #6c757d; }
+  </style>
+
+  <!-- Firebase JavaScript SDK (v8) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+
+  <h1>🏠 Smart Home Control Center</h1>
+
+  <div class="container">
+    <!-- Light 1 -->
+    <div class="card">
+      <h3>💡 ไฟห้องรับแขก</h3>
+      <div id="status-Light1" class="status">กำลังโหลด...</div>
+      <button id="btn-Light1" class="btn" onclick="toggleDevice('Light1')">เปิด / ปิด</button>
+    </div>
+
+    <!-- Light 2 -->
+    <div class="card">
+      <h3>💡 ไฟห้องนอน</h3>
+      <div id="status-Light2" class="status">กำลังโหลด...</div>
+      <button id="btn-Light2" class="btn" onclick="toggleDevice('Light2')">เปิด / ปิด</button>
+    </div>
+
+    <!-- Light 3 -->
+    <div class="card">
+      <h3>💡 ไฟหน้าบ้าน</h3>
+      <div id="status-Light3" class="status">กำลังโหลด...</div>
+      <button id="btn-Light3" class="btn" onclick="toggleDevice('Light3')">เปิด / ปิด</button>
+    </div>
+
+    <!-- Fan -->
+    <div class="card">
+      <h3>🌀 พัดลม</h3>
+      <div id="status-Fan" class="status">กำลังโหลด...</div>
+      <button id="btn-Fan" class="btn" onclick="toggleDevice('Fan')">เปิด / ปิด</button>
+    </div>
+  </div>
+
+  <script>
+    // Config Firebase ของโปรเจกต์คุณ
+    const firebaseConfig = {
+      apiKey: "AIzaSyDWKD0HXaT35DjB-yyGSEEW3wMC3P2zgi4",
+      databaseURL: "https://smarthome-c7e59-default-rtdb.firebaseio.com/"
+    };
+
+    // เริ่มต้น Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ตัวแปรเก็บสถานะปัจจุบัน
+    const deviceStates = { Light1: 0, Light2: 0, Light3: 0, Fan: 0 };
+
+    // รายชื่อ อุปกรณ์
+    const devices = ['Light1', 'Light2', 'Light3', 'Fan'];
+
+    // ฟังการเปลี่ยนแปลงข้อมูลแบบ Real-time จาก Firebase
+    devices.forEach(device => {
+      db.ref('/Home/' + device).on('value', (snapshot) => {
+        const val = snapshot.val();
+        // แปลงค่าไม่ว่าจะเก็บเป็น "1" หรือ 1
+        const state = (val == 1 || val == "1") ? 1 : 0;
+        deviceStates[device] = state;
+
+        // อัปเดต UI หน้าเว็บ
+        updateUI(device, state);
+      });
+    });
+
+    // อัปเดตการแสดงผลบนหน้าจอ
+    function updateUI(device, state) {
+      const statusEl = document.getElementById(`status-${device}`);
+      const btnEl = document.getElementById(`btn-${device}`);
+
+      if (state === 1) {
+        statusEl.innerHTML = device === 'Fan' ? '🌀 กำลังหมุน' : '🟢 เปิดอยู่';
+        statusEl.style.color = '#28a745';
+        btnEl.className = 'btn active';
+      } else {
+        statusEl.innerHTML = '⚪️ ปิดอยู่';
+        statusEl.style.color = '#6c757d';
+        btnEl.className = 'btn inactive';
+      }
+    }
+
+    // ฟังก์ชันสั่งสลับสถานะเมื่อกดปุ่ม
+    function toggleDevice(device) {
+      const newState = deviceStates[device] === 1 ? 0 : 1;
+      // ส่งค่าเป็นตัวเลขไปที่ Firebase
+      db.ref('/Home/' + device).set(newState);
+    }
+  </script>
+</body>
+</html>
